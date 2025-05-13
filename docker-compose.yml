@@ -4,11 +4,11 @@ services:
   database:
     image: postgres:15
     environment:
-      - POSTGRES_USER=${POSTGRES_USER:?err}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?err}
-      - POSTGRES_DB=${POSTGRES_DB:?err}
+      - POSTGRES_USER=${DOCUMENSO_DB_USER:?err}
+      - POSTGRES_PASSWORD=${DOCUMENSO_PASSWORD:?err}
+      - POSTGRES_DB=${DOCUMENSO_DB_NAME:?err}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DOCUMENSO_DB_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
