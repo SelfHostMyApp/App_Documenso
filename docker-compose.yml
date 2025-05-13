@@ -1,35 +1,21 @@
 name: documenso-production
 
 services:
-  database:
-    image: postgres:15
-    environment:
-      - POSTGRES_USER=${DOCUMENSO_DB_USER:?err}
-      - POSTGRES_PASSWORD=${DOCUMENSO_PASSWORD:?err}
-      - POSTGRES_DB=${DOCUMENSO_DB_NAME:?err}
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DOCUMENSO_DB_USER}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - database:/var/lib/postgresql/data
-
   documenso:
-    image: documenso/documenso:latest
+    image: documenso/documenso:${DOCUMENSO_VERSION:-latest}
     depends_on:
-      database:
+      postgres:
         condition: service_healthy
     environment:
-      - PORT=${PORT:-3000}
+      - PORT=${DOCUMENSO_PORT:-3069}
       - NEXTAUTH_SECRET=${DOCUMENSO_NEXTAUTH_SECRET:?err}
       - NEXT_PRIVATE_ENCRYPTION_KEY=${DOCUMENSO_ENCRYPTION_KEY:?err}
       - NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY=${DOCUMENSO_ENCRYPTION_SECONDARY_KEY:?err}
       - NEXT_PRIVATE_GOOGLE_CLIENT_ID=${DOCUMENSO_GOOGLE_CLIENT_ID}
       - NEXT_PRIVATE_GOOGLE_CLIENT_SECRET=${DOCUMENSO_GOOGLE_CLIENT_SECRET}
       - NEXT_PUBLIC_WEBAPP_URL=${DOCUMENSO_WEBAPP_URL:https://${DOCUMENSO_SUBDOMAIN}.${ROOT_DOMAIN}}
-      - NEXT_PRIVATE_INTERNAL_WEBAPP_URL=${DOCUMENSO_INTERNAL_WEBAPP_URL:-http://localhost:$PORT}
-      - NEXT_PRIVATE_DATABASE_URL=${DOCUMENSO_DATABASE_URL:-http://postgres:5432}
+      - NEXT_PRIVATE_INTERNAL_WEBAPP_URL=${DOCUMENSO_INTERNAL_WEBAPP_URL:-http://localhost:${DOCUMENSO_PORT}}
+      - NEXT_PRIVATE_DATABASE_URL=${DOCUMENSO_DATABASE_URL:-postgres://${DOCUMENSO_DB_USER}:${DOCUMENSO_PASSWORD}@${POSTGRES_HOST-postgres}:${POSTGRES_PORT-5432}/${DOCUMENSO_DB_NAME}}
       - NEXT_PRIVATE_DIRECT_DATABASE_URL=${DOCUMENSO_DIRECT_DATABASE_URL:-${DOCUMENSO_DATABASE_URL}}
       - NEXT_PUBLIC_UPLOAD_TRANSPORT=${DOCUMENSO_UPLOAD_TRANSPORT:-database}
       - NEXT_PRIVATE_UPLOAD_ENDPOINT=${DOCUMENSO_UPLOAD_ENDPOINT}
@@ -61,9 +47,16 @@ services:
       - NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH=${DOCUMENSO_SIGNING_LOCAL_FILE_PATH:-/opt/documenso/cert.p12}
       - NEXT_PRIVATE_SIGNING_PASSPHRASE=${DOCUMENSO_SIGNING_PASSPHRASE}
     ports:
-      - ${PORT:-3000}:${PORT:-3000}
+      - ${DOCUMENSO_PORT:-3069}:${DOCUMENSO_PORT:-3069}
     volumes:
       - /opt/documenso/cert.p12:/opt/documenso/cert.p12
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.firefly.rule=Host(`${DOCUMENSO_SUBDOMAIN}.${ROOT_DOMAIN}`)"
+      - "traefik.http.routers.firefly.entrypoints=websecure"
+      - "traefik.http.routers.firefly.middlewares=cloudflare-ipallowlist@file"
+      - "traefik.http.routers.firefly.tls.certresolver=cloudflare"
+      - "traefik.http.services.firefly.loadbalancer.server.port=${DOCUMENSO_PORT:-3069}"
 
 volumes:
   database:
