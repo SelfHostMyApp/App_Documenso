@@ -1,0 +1,12 @@
+containers:
+  - name: documenso
+    image: documenso:latest
+    imagePullPolicy: IfNotPresent
+    command:
+      - npm
+    args:
+      - run
+      - start
+      - --
+      - -H
+      - '::'
