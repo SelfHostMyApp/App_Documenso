@@ -56,11 +56,11 @@ services:
       - /opt/documenso/cert.p12:/opt/documenso/cert.p12
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.firefly.rule=Host(`${DOCUMENSO_SUBDOMAIN}.${ROOT_DOMAIN}`)"
-      - "traefik.http.routers.firefly.entrypoints=websecure"
-      - "traefik.http.routers.firefly.middlewares=cloudflare-ipallowlist@file"
-      - "traefik.http.routers.firefly.tls.certresolver=cloudflare"
-      - "traefik.http.services.firefly.loadbalancer.server.port=${DOCUMENSO_PORT:-3069}"
+      - "traefik.http.routers.documenso.rule=Host(`${DOCUMENSO_SUBDOMAIN}.${ROOT_DOMAIN}`)"
+      - "traefik.http.routers.documenso.entrypoints=websecure"
+      - "traefik.http.routers.documenso.middlewares=cloudflare-ipallowlist@file"
+      - "traefik.http.routers.documenso.tls.certresolver=cloudflare"
+      - "traefik.http.services.documenso.loadbalancer.server.port=3000"
 
 volumes:
   database:
