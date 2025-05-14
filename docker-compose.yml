@@ -61,6 +61,7 @@ services:
       - "traefik.http.routers.documenso.middlewares=cloudflare-ipallowlist@file"
       - "traefik.http.routers.documenso.tls.certresolver=cloudflare"
       - "traefik.http.services.documenso.loadbalancer.server.port=3000"
-
+      - "traefik.http.routers.documenso.middlewares=${DOCUMENSO_AUTH:+documenso-auth}"
+      - "traefik.http.middlewares.documenso-auth.basicauth.users=${DOCUMENSO_AUTH}"
 volumes:
   database:
