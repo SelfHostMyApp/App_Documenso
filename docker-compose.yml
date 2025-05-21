@@ -1,5 +1,3 @@
-name: documenso-production
-
 services:
   documenso:
     container_name: documenso
@@ -53,7 +51,7 @@ services:
     ports:
       - ${DOCUMENSO_PORT:-1020}:3000
     volumes:
-      - /opt/documenso/cert.p12:/opt/documenso/cert.p12
+      - ./volumes/documenso/cert.p12:/opt/documenso/cert.p12
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.documenso.rule=Host(`${DOCUMENSO_SUBDOMAIN}.${ROOT_DOMAIN}`)"
