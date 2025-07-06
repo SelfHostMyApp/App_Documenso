@@ -1,0 +1,89 @@
+x-basics: &basics
+  env_file:
+    - .env
+  restart: unless-stopped
+
+services:
+  documenso:
+    container_name: documenso
+    image: documenso/documenso:${DOCUMENSO_VERSION:-latest}
+    <<: *basics
+    networks:
+      core:
+        ipv4_address: 172.20.0.20
+    environment:
+      - PORT=${DOCUMENSO_PORT:-3000}
+      - NEXTAUTH_SECRET=${DOCUMENSO_NEXTAUTH_SECRET:?err}
+      - NEXT_PRIVATE_ENCRYPTION_KEY=${DOCUMENSO_ENCRYPTION_KEY:?err}
+      - NEXT_PRIVATE_ENCRYPTION_SECONDARY_KEY=${DOCUMENSO_ENCRYPTION_SECONDARY_KEY:?err}
+      - NEXT_PRIVATE_GOOGLE_CLIENT_ID=${DOCUMENSO_GOOGLE_CLIENT_ID}
+      - NEXT_PRIVATE_GOOGLE_CLIENT_SECRET=${DOCUMENSO_GOOGLE_CLIENT_SECRET}
+      - NEXT_PUBLIC_WEBAPP_URL=${DOCUMENSO_WEBAPP_URL:-https://${DOCUMENSO_SUBDOMAIN}.${ROOT_DOMAIN}}
+      - NEXT_PRIVATE_INTERNAL_WEBAPP_URL=${DOCUMENSO_INTERNAL_WEBAPP_URL:-http://localhost:${DOCUMENSO_PORT:-3000}}
+      # SQLite for DDR2 optimization (no PostgreSQL dependency)
+      - NEXT_PRIVATE_DATABASE_URL=${DOCUMENSO_DATABASE_URL:-file:./data/documenso.db}
+      - NEXT_PRIVATE_DIRECT_DATABASE_URL=${DOCUMENSO_DIRECT_DATABASE_URL:-${DOCUMENSO_DATABASE_URL:-file:./data/documenso.db}}
+      - NEXT_PUBLIC_UPLOAD_TRANSPORT=${DOCUMENSO_UPLOAD_TRANSPORT:-database}
+      - NEXT_PRIVATE_UPLOAD_ENDPOINT=${DOCUMENSO_UPLOAD_ENDPOINT}
+      - NEXT_PRIVATE_UPLOAD_FORCE_PATH_STYLE=${DOCUMENSO_UPLOAD_FORCE_PATH_STYLE}
+      - NEXT_PRIVATE_UPLOAD_REGION=${DOCUMENSO_UPLOAD_REGION}
+      - NEXT_PRIVATE_UPLOAD_BUCKET=${DOCUMENSO_UPLOAD_BUCKET}
+      - NEXT_PRIVATE_UPLOAD_ACCESS_KEY_ID=${DOCUMENSO_UPLOAD_ACCESS_KEY_ID}
+      - NEXT_PRIVATE_UPLOAD_SECRET_ACCESS_KEY=${DOCUMENSO_UPLOAD_SECRET_ACCESS_KEY}
+      - NEXT_PRIVATE_SMTP_TRANSPORT=${DOCUMENSO_SMTP_TRANSPORT:?err}
+      - NEXT_PRIVATE_SMTP_HOST=${DOCUMENSO_SMTP_HOST}
+      - NEXT_PRIVATE_SMTP_PORT=${DOCUMENSO_SMTP_PORT}
+      - NEXT_PRIVATE_SMTP_USERNAME=${DOCUMENSO_SMTP_USERNAME}
+      - NEXT_PRIVATE_SMTP_PASSWORD=${DOCUMENSO_SMTP_PASSWORD}
+      - NEXT_PRIVATE_SMTP_APIKEY_USER=${DOCUMENSO_SMTP_APIKEY_USER}
+      - NEXT_PRIVATE_SMTP_APIKEY=${DOCUMENSO_SMTP_APIKEY}
+      - NEXT_PRIVATE_SMTP_SECURE=${DOCUMENSO_SMTP_SECURE}
+      - NEXT_PRIVATE_SMTP_FROM_NAME=${DOCUMENSO_SMTP_FROM_NAME:?err}
+      - NEXT_PRIVATE_SMTP_FROM_ADDRESS=${DOCUMENSO_SMTP_FROM_ADDRESS:?err}
+      - NEXT_PRIVATE_SMTP_SERVICE=${DOCUMENSO_SMTP_SERVICE}
+      - NEXT_PRIVATE_RESEND_API_KEY=${DOCUMENSO_RESEND_API_KEY}
+      - NEXT_PRIVATE_MAILCHANNELS_API_KEY=${DOCUMENSO_MAILCHANNELS_API_KEY}
+      - NEXT_PRIVATE_MAILCHANNELS_ENDPOINT=${DOCUMENSO_MAILCHANNELS_ENDPOINT}
+      - NEXT_PRIVATE_MAILCHANNELS_DKIM_DOMAIN=${DOCUMENSO_MAILCHANNELS_DKIM_DOMAIN}
+      - NEXT_PRIVATE_MAILCHANNELS_DKIM_SELECTOR=${DOCUMENSO_MAILCHANNELS_DKIM_SELECTOR}
+      - NEXT_PRIVATE_MAILCHANNELS_DKIM_PRIVATE_KEY=${DOCUMENSO_MAILCHANNELS_DKIM_PRIVATE_KEY}
+      - NEXT_PUBLIC_DOCUMENT_SIZE_UPLOAD_LIMIT=${DOCUMENSO_DOCUMENT_SIZE_UPLOAD_LIMIT:-10485760}
+      - NEXT_PUBLIC_POSTHOG_KEY=${DOCUMENSO_POSTHOG_KEY}
+      - NEXT_PUBLIC_DISABLE_SIGNUP=${DOCUMENSO_DISABLE_SIGNUP:-true}
+      - NEXT_PRIVATE_SIGNING_LOCAL_FILE_PATH=${DOCUMENSO_SIGNING_LOCAL_FILE_PATH:-/opt/documenso/cert.p12}
+      - NEXT_PRIVATE_SIGNING_PASSPHRASE=${DOCUMENSO_SIGNING_PASSPHRASE}
+      # DDR2 optimizations
+      - NODE_ENV=production
+      - NODE_OPTIONS=--max-old-space-size=512
+    ports:
+      - ${DOCUMENSO_PORT:-3000}:3000
+    volumes:
+      - ./volumes/documenso/data:/app/data
+      - ./volumes/documenso/cert.p12:/opt/documenso/cert.p12:ro
+    deploy:
+      resources:
+        limits:
+          memory: 384M
+          cpus: '0.6'
+    security_opt:
+      - no-new-privileges:true
+    user: "node"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 120s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.documenso.rule=Host(`${DOCUMENSO_SUBDOMAIN}.${ROOT_DOMAIN}`)"
+      - "traefik.http.routers.documenso.entrypoints=websecure"
+      - "traefik.http.routers.documenso.middlewares=cloudflare-ipallowlist@file"
+      - "traefik.http.routers.documenso.tls.certresolver=cloudflare"
+      - "traefik.http.services.documenso.loadbalancer.server.port=3000"
+      - "traefik.http.routers.documenso.middlewares=${DOCUMENSO_AUTH:+documenso-auth}"
+      - "traefik.http.middlewares.documenso-auth.basicauth.users=${DOCUMENSO_AUTH}"
+
+networks:
+  core:
+    external: true
