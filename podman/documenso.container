@@ -1,0 +1,16 @@
+[Unit]
+Description=Documenso Digital Document Signing
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image=docker.io/documenso/documenso:latest
+PodmanArgs=--pod documenso-pod
+EnvironmentFile=ENV_FILE_PLACEHOLDER
+Environment=PORT=3000
+Volume=CERT_VOLUME_PLACEHOLDER
+DNS=8.8.8.8
+DNS=8.8.4.4
+
+[Install]
+WantedBy=default.target

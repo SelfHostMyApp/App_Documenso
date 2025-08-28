@@ -1,0 +1,11 @@
+[Unit]
+Description=Documenso Pod
+After=network-online.target
+Wants=network-online.target
+
+[Pod]
+Network=bridge
+PublishPort=8084:3000
+
+[Install]
+WantedBy=default.target
